@@ -1,0 +1,6 @@
+{
+  "name": "ClientPulse AI",
+  "description": "AI-powered shared inbox triage assistant that classifies client queries, looks up context and knowledge base articles, and generates safe draft replies for human review.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

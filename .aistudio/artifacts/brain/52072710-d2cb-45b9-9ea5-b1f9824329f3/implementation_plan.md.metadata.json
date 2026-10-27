@@ -1,0 +1,6 @@
+{
+  "summary": "Architectural and UX implementation plan for the AI Client Query Triage and Draft Reply Assistant, featuring dual Gmail OAuth & simulation modes, Gemini-powered triage with citation grounding, human-in-the-loop draft approval, confidential client guardrails, smart routing, daily executive summary, and an interactive n8n-style workflow canvas with ROI metrics.",
+  "updatedAt": "2026-10-19T10:02:31.961393336Z",
+  "requestFeedback": true,
+  "userFacing": true
+}
