@@ -12,12 +12,12 @@ import {
   RotateCcw,
   CheckCircle2,
   Lock,
-  ChevronDown,
   Download,
   MessageSquare,
   Mail,
   AlertTriangle,
-  Share2
+  History,
+  FileText
 } from 'lucide-react';
 import { ClientQuery, ClientRecord, DraftTone, KnowledgeArticle } from '../types/inbox';
 import { formatSlaStatus } from '../utils/sla';
@@ -51,8 +51,9 @@ export const QueryDetail: React.FC<QueryDetailProps> = ({
   const [isSavedToGmail, setIsSavedToGmail] = useState(query.draftReply?.isSavedToGmailDrafts || false);
   const [isApproved, setIsApproved] = useState(query.draftReply?.isApproved || false);
   const [isSlackModalOpen, setIsSlackModalOpen] = useState(false);
+  const [leftContextTab, setLeftContextTab] = useState<'client' | 'history'>('client');
 
-  // Sync draftText when query changes
+  // Sync state when query changes
   React.useEffect(() => {
     setDraftText(query.draftReply?.body || '');
     setActiveTone(query.draftReply?.tone || 'technical');
@@ -163,45 +164,39 @@ export const QueryDetail: React.FC<QueryDetailProps> = ({
   const sla = formatSlaStatus(query.slaDeadline);
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-white overflow-hidden">
-      {/* Header Bar */}
-      <div className="p-4 border-b border-slate-200 bg-white flex flex-wrap items-center justify-between gap-3 shrink-0">
+    <div className="flex-1 flex flex-col h-full bg-slate-50 overflow-hidden">
+      {/* Top Header Bar */}
+      <div className="px-6 py-3.5 border-b border-slate-200 bg-white flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded">
-              {query.category}
+          <div className="flex items-center gap-2 mb-1 flex-wrap text-xs">
+            <span className="font-semibold text-slate-900">
+              {query.clientCompany}
             </span>
-            <span className={`text-[11px] font-bold px-2 py-0.5 rounded border tabular-nums ${sla.severityClass}`}>
+            <span className="text-slate-300">·</span>
+            <span className="text-slate-500">{query.category}</span>
+            <span className="text-slate-300">·</span>
+            <span className={`px-2 py-0.5 rounded font-mono tabular-nums text-[11px] ${sla.severityClass}`}>
               <Clock className="w-3 h-3 inline mr-1 -mt-0.5" />
               {sla.text}
             </span>
             {query.isConfidential && (
-              <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded flex items-center gap-1">
+              <span className="text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded flex items-center gap-1">
                 <ShieldAlert className="w-3 h-3 text-amber-600" />
-                Confidential Client Policy
+                Confidential Client
               </span>
             )}
           </div>
-          <h2 className="text-sm font-semibold text-slate-900 truncate">
+          <h2 className="text-base font-semibold text-slate-900 truncate">
             {query.subject}
           </h2>
         </div>
 
-        {/* Reassign, Slack/Teams Alert & Actions */}
+        {/* Action Controls */}
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Slack / Teams Alert Button */}
-          <button
-            onClick={() => setIsSlackModalOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded border border-slate-200 transition-colors cursor-pointer"
-            title="Dispatch alert to Slack or Microsoft Teams channel"
-          >
-            <MessageSquare className="w-3.5 h-3.5 text-[#4A154B]" />
-            <span>Alert Slack / Teams</span>
-          </button>
-
-          <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded px-2.5 py-1">
+          {/* Reassign Dropdown */}
+          <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1.5">
             <User className="w-3.5 h-3.5 text-slate-400" />
-            <span>Assigned:</span>
+            <span className="text-slate-500 font-medium">Assigned:</span>
             <select
               value={query.assignedTo}
               onChange={(e) => onReassign(query.id, e.target.value, query.assignedRole)}
@@ -214,11 +209,22 @@ export const QueryDetail: React.FC<QueryDetailProps> = ({
             </select>
           </div>
 
+          {/* Slack / Teams Alert Button */}
+          <button
+            onClick={() => setIsSlackModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 rounded-md border border-slate-200 transition-colors cursor-pointer shadow-2xs"
+            title="Dispatch alert to Slack or Microsoft Teams channel"
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-[#4A154B]" />
+            <span>Escalate Alert</span>
+          </button>
+
+          {/* Re-triage Button */}
           <button
             onClick={() => onRetriage(query.id)}
             disabled={isRetriaging}
             title="Re-run Gemini AI Triage on this thread"
-            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded hover:bg-slate-50 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
           >
             <RotateCcw className={`w-3.5 h-3.5 ${isRetriaging ? 'animate-spin text-blue-600' : 'text-slate-400'}`} />
             <span>{isRetriaging ? 'Triaging...' : 'Re-triage'}</span>
@@ -226,237 +232,289 @@ export const QueryDetail: React.FC<QueryDetailProps> = ({
         </div>
       </div>
 
-      {/* Main Split View */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
-        {/* Left Column: Email Thread & Client Card (5 cols) */}
-        <div className="lg:col-span-5 p-4 border-r border-slate-200 overflow-y-auto space-y-4 bg-slate-50/50">
+      {/* Main Two-Column Reading & Response Studio */}
+      <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-4 p-5 overflow-y-auto">
+        
+        {/* ================= LEFT COLUMN: INBOUND MESSAGE & ACCOUNT CONTEXT ================= */}
+        <div className="flex flex-col gap-4">
+          
           {/* Overdue Warning Callout (if overdue) */}
           {sla.isOverdue && (
-            <div className={`p-3 rounded-lg border text-xs ${
+            <div className={`p-3.5 rounded-xl border text-xs ${
               sla.daysOverdue >= 7 
-                ? 'bg-red-50 border-red-300 text-red-900' 
-                : 'bg-amber-50 border-amber-200 text-amber-900'
+                ? 'bg-red-50/80 border-red-300 text-red-900' 
+                : 'bg-amber-50/80 border-amber-300 text-amber-900'
             }`}>
               <div className="flex items-center justify-between mb-1 font-bold">
                 <span className="flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-red-600" />
+                  <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
                   <span>SLA Breached ({sla.text})</span>
                 </span>
                 <button
                   onClick={() => setIsSlackModalOpen(true)}
-                  className="text-[11px] underline font-semibold text-red-700 hover:text-red-900 cursor-pointer"
+                  className="text-xs font-semibold text-red-700 hover:text-red-900 underline cursor-pointer"
                 >
-                  Escalate Now
+                  Escalate to On-Call
                 </button>
               </div>
               <p className="text-[11px] leading-relaxed opacity-90">
-                This query has exceeded the client's {client?.slaResponseHours || 1}h contractual SLA deadline. Grounded draft is prepared below for immediate review.
+                This query has passed the {client?.slaResponseHours || 1}h contractual response window. The grounded response below is staged for immediate human sign-off.
               </p>
             </div>
           )}
 
-          {/* Client Profile Card */}
-          <div className="bg-white p-3.5 rounded-lg border border-slate-200 shadow-xs">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded bg-blue-50 border border-blue-200 flex items-center justify-center font-bold text-xs text-blue-700">
-                  <Building className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <div className="text-xs font-semibold text-slate-900">{query.clientCompany}</div>
-                  <div className="text-[11px] text-slate-500">{query.senderEmail}</div>
-                </div>
-              </div>
-              <span className="text-[10px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
-                {client?.tier || 'Enterprise'}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-[11px]">
-              <div>
-                <span className="text-slate-400 block">Annual ARR:</span>
-                <span className="font-semibold text-slate-800">{client?.annualValue || '$180,000/yr'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block">Contract SLA:</span>
-                <span className="font-semibold text-slate-800">{client?.slaResponseHours || 1} Hour Target</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block">Dedicated CSM:</span>
-                <span className="font-semibold text-slate-800">{client?.assignedCSM || 'Sarah Jenkins'}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block">Renewal:</span>
-                <span className="font-semibold text-slate-800">{client?.renewalDate || 'Nov 2026'}</span>
-              </div>
-            </div>
-
-            {client?.notes && (
-              <div className="mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500 italic">
-                "{client.notes}"
-              </div>
-            )}
-          </div>
-
-          {/* Original Inbound Email */}
-          <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-xs">
-            <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-xs text-slate-700">
-                  {query.senderName.charAt(0)}
-                </div>
-                <div>
-                  <div className="text-xs font-semibold text-slate-900">{query.senderName}</div>
-                  <div className="text-[11px] text-slate-500">{query.senderEmail}</div>
-                </div>
-              </div>
-              <span className="text-[10px] text-slate-400 tabular-nums">
-                {new Date(query.receivedAt).toLocaleString()}
-              </span>
-            </div>
-
-            <div className="text-xs text-slate-800 font-normal leading-relaxed whitespace-pre-wrap font-sans">
-              {query.body}
-            </div>
-          </div>
-
-          {/* Routing History Audit Trail */}
-          <div className="bg-white rounded-lg border border-slate-200 p-3 shadow-xs">
-            <div className="text-xs font-semibold text-slate-900 mb-2 flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-slate-400" />
-              <span>Automated Audit Trail</span>
-            </div>
-            <div className="space-y-2 text-[11px]">
-              {query.routingHistory.map((step, idx) => (
-                <div key={idx} className="flex items-start gap-2 text-slate-600">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1 shrink-0"></span>
-                  <div className="min-w-0">
-                    <span className="font-semibold text-slate-800">{step.action}</span>
-                    <span className="text-slate-400"> by {step.actor}</span>
-                    <div className="text-slate-500">{step.note}</div>
+          {/* Original Inbound Email Card */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden flex flex-col flex-1 min-h-[300px]">
+            {/* Email Header */}
+            <div className="p-4 bg-slate-50/60 border-b border-slate-200 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                {query.senderAvatar ? (
+                  <img
+                    src={query.senderAvatar}
+                    alt={query.senderName}
+                    referrerPolicy="no-referrer"
+                    className="w-9 h-9 rounded-full object-cover shrink-0 border border-slate-200"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm shrink-0">
+                    {query.senderName.charAt(0)}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-slate-900 truncate">
+                    {query.senderName}
+                  </div>
+                  <div className="text-[11px] text-slate-500 font-mono truncate">
+                    {query.senderEmail}
                   </div>
                 </div>
-              ))}
+              </div>
+
+              <div className="text-right shrink-0">
+                <span className="text-[11px] text-slate-500 font-mono block">
+                  {new Date(query.receivedAt).toLocaleDateString()} {new Date(query.receivedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <span className="text-[10px] text-slate-400">
+                  via Shared Inbox
+                </span>
+              </div>
+            </div>
+
+            {/* Email Body Prose */}
+            <div className="p-5 flex-1 overflow-y-auto bg-white">
+              <div className="text-xs sm:text-sm text-slate-800 font-sans leading-relaxed whitespace-pre-wrap select-text">
+                {query.body}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Accordion: Client Account & Contract vs. Audit Trail */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
+            {/* Tab Header */}
+            <div className="px-4 py-2.5 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-semibold">
+                <button
+                  onClick={() => setLeftContextTab('client')}
+                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer flex items-center gap-1.5 ${
+                    leftContextTab === 'client'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Building className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Client Record & Contract</span>
+                </button>
+                <button
+                  onClick={() => setLeftContextTab('history')}
+                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer flex items-center gap-1.5 ${
+                    leftContextTab === 'history'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <History className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Audit Trail ({query.routingHistory.length})</span>
+                </button>
+              </div>
+
+              <span className="text-[11px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
+                {client?.tier || 'Enterprise'} Tier
+              </span>
+            </div>
+
+            {/* Tab Body */}
+            <div className="p-4">
+              {leftContextTab === 'client' ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Annual Value</span>
+                      <span className="text-xs font-bold text-slate-900 mt-0.5 block">{client?.annualValue || '$180,000/yr'}</span>
+                    </div>
+                    <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">SLA Target</span>
+                      <span className="text-xs font-bold text-slate-900 mt-0.5 block">{client?.slaResponseHours || 1} Hour Commitment</span>
+                    </div>
+                    <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Dedicated CSM</span>
+                      <span className="text-xs font-bold text-slate-900 mt-0.5 block">{client?.assignedCSM || 'Sarah Jenkins'}</span>
+                    </div>
+                    <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">Renewal Date</span>
+                      <span className="text-xs font-bold text-slate-900 mt-0.5 block">{client?.renewalDate || 'Nov 2026'}</span>
+                    </div>
+                  </div>
+
+                  {client?.notes && (
+                    <div className="text-xs text-slate-600 bg-slate-50/60 p-2.5 rounded-lg border border-slate-100 italic">
+                      "{client.notes}"
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2 text-xs">
+                  {query.routingHistory.map((step, idx) => (
+                    <div key={idx} className="flex items-start gap-2.5 py-1">
+                      <span className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0"></span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-semibold text-slate-900">{step.action}</span>
+                          <span className="text-slate-400 font-mono">{step.timestamp}</span>
+                        </div>
+                        <div className="text-slate-500 text-[11px] mt-0.5">
+                          By <span className="font-medium text-slate-700">{step.actor}</span>: {step.note}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Right Column: AI Triage & Grounded Draft Workspace (7 cols) */}
-        <div className="lg:col-span-7 flex flex-col h-full bg-white overflow-y-auto p-4 space-y-4">
-          {/* AI Triage Card */}
-          <div className="bg-blue-50/50 border border-blue-200/80 rounded-lg p-3.5">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-blue-900">
-                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                <span>AI Triage Analysis & Reasoning</span>
-              </div>
+        {/* ================= RIGHT COLUMN: AI INTELLIGENCE & DRAFT REPLY STUDIO ================= */}
+        <div className="flex flex-col gap-4">
+          
+          {/* AI Intelligence & Citation Grounding Card */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-2xs p-4 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-blue-700">
-                  Sentiment: <strong>{query.sentiment}</strong>
-                </span>
+                <Sparkles className="w-4 h-4 text-blue-600" />
+                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  AI Triage & Context Grounding
+                </h3>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs text-slate-600">
+                <span>Sentiment: <strong className="text-slate-900">{query.sentiment}</strong></span>
                 <span className="text-slate-300">·</span>
-                <span className="text-[11px] text-blue-700">
-                  Confidence: <strong>{query.draftReply?.confidenceScore || 95}%</strong>
-                </span>
+                <span>Confidence: <strong className="text-slate-900 font-mono">{query.draftReply?.confidenceScore || 95}%</strong></span>
               </div>
             </div>
-            <p className="text-xs text-slate-700 leading-relaxed">
+
+            {/* AI Reasoning Text */}
+            <p className="text-xs text-slate-700 leading-relaxed bg-blue-50/40 p-3 rounded-lg border border-blue-100">
               {query.aiReasoning || 'Assessed urgency and matched runbook procedures based on customer contract.'}
             </p>
+
+            {/* Grounded KB Citations */}
+            {query.draftReply?.citations && query.draftReply.citations.length > 0 && (
+              <div className="space-y-1.5 pt-1">
+                <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Knowledge Base Citations ({query.draftReply.citations.length})</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400">Click to expand</span>
+                </div>
+
+                <div className="space-y-2">
+                  {query.draftReply.citations.map((c, i) => (
+                    <div
+                      key={i}
+                      onClick={() => setSelectedCitation(selectedCitation === c.sectionCode ? null : c.sectionCode)}
+                      className="p-2.5 bg-slate-50/70 hover:bg-slate-50 rounded-lg border border-slate-200 text-xs transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-blue-700">
+                          {c.sectionCode}: {c.title}
+                        </span>
+                        <span className="text-[10px] font-mono font-medium text-slate-500 tabular-nums">
+                          {c.confidence}% match
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 mt-1 line-clamp-2 italic">
+                        "{c.relevantExcerpt}"
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Grounded Source Citations */}
-          {query.draftReply?.citations && query.draftReply.citations.length > 0 && (
-            <div className="border border-slate-200 rounded-lg p-3 bg-slate-50/60">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
-                  <BookOpen className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Grounded Knowledge Base Citations</span>
-                </div>
-                <span className="text-[10px] text-slate-500">
-                  {query.draftReply.citations.length} verified references
-                </span>
-              </div>
-
-              <div className="space-y-1.5">
-                {query.draftReply.citations.map((c, i) => (
-                  <div
-                    key={i}
-                    onClick={() => setSelectedCitation(selectedCitation === c.sectionCode ? null : c.sectionCode)}
-                    className="p-2 bg-white rounded border border-slate-200 text-xs hover:border-blue-300 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="font-semibold text-blue-700">{c.sectionCode}: {c.title}</div>
-                      <span className="text-[10px] text-slate-400 tabular-nums">Match {c.confidence}%</span>
-                    </div>
-                    <p className="text-[11px] text-slate-600 mt-1 line-clamp-2 italic">
-                      "{c.relevantExcerpt}"
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Draft Reply Workspace */}
-          <div className="flex-1 flex flex-col min-h-[300px] border border-slate-200 rounded-lg bg-white overflow-hidden shadow-xs">
-            {/* Tone Selector & Bar */}
-            <div className="p-2.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-1 text-xs">
-                <span className="font-medium text-slate-600 mr-1">Tone:</span>
+          {/* Staged Draft Reply Workspace Card */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden flex flex-col flex-1 min-h-[380px]">
+            {/* Tone Selector & Copy Bar */}
+            <div className="p-3 bg-slate-50/80 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2.5">
+              {/* Tone Controls */}
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="font-semibold text-slate-600 mr-1">Tone:</span>
                 {(['technical', 'empathetic', 'concise', 'executive'] as DraftTone[]).map((tone) => (
                   <button
                     key={tone}
                     onClick={() => handleToneChange(tone)}
                     disabled={isChangingTone}
-                    className={`px-2 py-0.5 capitalize text-[11px] font-medium rounded transition-colors cursor-pointer ${
+                    className={`px-2.5 py-1 capitalize text-xs rounded-md transition-colors cursor-pointer ${
                       activeTone === tone
-                        ? 'bg-blue-600 text-white font-semibold'
-                        : 'bg-white text-slate-700 hover:bg-slate-200/70 border border-slate-200'
+                        ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                        : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
                     }`}
                   >
                     {tone}
                   </button>
                 ))}
                 {isChangingTone && (
-                  <span className="text-[10px] text-blue-600 animate-pulse ml-1">
-                    Adjusting tone...
+                  <span className="text-[11px] text-blue-600 animate-pulse ml-1">
+                    Regenerating...
                   </span>
                 )}
               </div>
 
+              {/* Utility Export Buttons */}
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={handleCopyDraft}
-                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded hover:bg-slate-50 transition-colors cursor-pointer"
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors cursor-pointer"
                   title="Copy message body only"
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
-                  <span>{copied ? 'Copied Body' : 'Copy Body'}</span>
+                  <span>{copied ? 'Copied' : 'Copy'}</span>
                 </button>
 
                 <button
                   onClick={handleCopyRFCHeaders}
-                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded hover:bg-slate-50 transition-colors cursor-pointer"
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors cursor-pointer"
                   title="Copy full RFC email headers (To, Subject, In-Reply-To)"
                 >
                   {copiedHeaders ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Mail className="w-3.5 h-3.5 text-slate-400" />}
-                  <span>{copiedHeaders ? 'Copied Full RFC' : 'Copy Email + Headers'}</span>
+                  <span>{copiedHeaders ? 'Copied RFC' : 'RFC Headers'}</span>
                 </button>
 
                 <button
                   onClick={handleDownloadEml}
-                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded hover:bg-slate-50 transition-colors cursor-pointer"
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 transition-colors cursor-pointer"
                   title="Download editable .eml draft file for Outlook or Apple Mail"
                 >
                   <Download className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Download .eml</span>
+                  <span>.eml file</span>
                 </button>
               </div>
             </div>
 
             {/* Editable Draft Textarea */}
-            <div className="flex-1 p-3">
+            <div className="p-4 flex-1 flex flex-col bg-white">
               <textarea
                 value={draftText}
                 onChange={(e) => {
@@ -464,59 +522,61 @@ export const QueryDetail: React.FC<QueryDetailProps> = ({
                   onUpdateDraft(query.id, e.target.value, isApproved);
                 }}
                 placeholder="Draft reply content..."
-                className="w-full h-full min-h-[220px] resize-none text-xs font-sans text-slate-800 leading-relaxed focus:outline-none placeholder-slate-400"
+                className="w-full flex-1 min-h-[220px] resize-none text-xs sm:text-sm font-sans text-slate-900 leading-relaxed focus:outline-none placeholder-slate-400"
               />
             </div>
 
-            {/* Safeguard Notice */}
-            <div className="p-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-600">
+            {/* Safeguard & Word Count Bar */}
+            <div className="px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
               <div className="flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5 text-emerald-600" />
-                <span>
-                  <strong>Safe Guardrail:</strong> Draft is staged for human review. Never auto-sent.
+                <span className="text-[11px]">
+                  <strong>Zero-Auto-Send Policy:</strong> Human sign-off required before dispatch.
                 </span>
               </div>
-              <span className="text-slate-400 tabular-nums">
+              <span className="text-slate-400 font-mono text-[11px] tabular-nums">
                 {draftText.split(/\s+/).filter(Boolean).length} words
               </span>
             </div>
-          </div>
 
-          {/* Action Row: Gmail Web, Outlook Web, and Approve Button */}
-          <div className="flex items-center justify-between gap-3 pt-1 flex-wrap">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleOpenInGmail}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md transition-colors cursor-pointer shadow-2xs"
-                title="Open directly in Gmail Web Draft Compose"
-              >
-                <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
-                <span>{isSavedToGmail ? 'Saved in Gmail' : 'Open in Gmail Web'}</span>
-              </button>
+            {/* Action Row: Primary Approval + Deep Links */}
+            <div className="p-3 bg-white border-t border-slate-200 flex items-center justify-between gap-2.5 flex-wrap">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleOpenInOutlook}
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-md transition-colors cursor-pointer shadow-2xs"
+                  title="Open directly in Microsoft Outlook Web Draft Compose"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-[#0078D4]" />
+                  <span>Outlook Web</span>
+                </button>
 
+                <button
+                  onClick={handleOpenInGmail}
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-md transition-colors cursor-pointer shadow-2xs"
+                  title="Open directly in Gmail Web Draft Compose"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-red-600" />
+                  <span>{isSavedToGmail ? 'Saved to Gmail' : 'Gmail Web'}</span>
+                </button>
+              </div>
+
+              {/* Primary Approval CTA */}
               <button
-                onClick={handleOpenInOutlook}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md transition-colors cursor-pointer shadow-2xs"
-                title="Open directly in Microsoft Outlook Web Draft Compose"
+                onClick={handleApprove}
+                className={`flex items-center gap-2 px-5 py-2 text-xs font-semibold rounded-md shadow-xs transition-colors cursor-pointer ${
+                  isApproved
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    : 'bg-blue-600 hover:bg-blue-500 text-white'
+                }`}
               >
-                <ExternalLink className="w-3.5 h-3.5 text-[#0078D4]" />
-                <span>Open in Outlook Web</span>
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{isApproved ? 'Approved & Ready' : 'Approve Draft Reply'}</span>
               </button>
             </div>
-
-            <button
-              onClick={handleApprove}
-              className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-md shadow-xs transition-colors cursor-pointer ${
-                isApproved
-                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                  : 'bg-blue-600 hover:bg-blue-500 text-white'
-              }`}
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{isApproved ? 'Approved & Ready for Dispatch' : 'Approve Draft Reply'}</span>
-            </button>
           </div>
         </div>
+
       </div>
 
       {/* Slack & Microsoft Teams Dispatcher Modal */}
@@ -524,7 +584,7 @@ export const QueryDetail: React.FC<QueryDetailProps> = ({
         isOpen={isSlackModalOpen}
         onClose={() => setIsSlackModalOpen(false)}
         query={query}
-        onDispatchSuccess={(ch, lead) => {
+        onDispatchSuccess={() => {
           onUpdateDraft(query.id, draftText, isApproved);
         }}
       />

@@ -286,8 +286,8 @@ export default function App() {
         <main className="flex-1 overflow-hidden relative">
           {activeTab === 'inbox' && (
             <div className="flex h-full w-full overflow-hidden">
-              {/* Triage Queue (Left Sub-column, width 380px - 440px) */}
-              <div className="w-full sm:w-[380px] lg:w-[420px] shrink-0 h-full overflow-hidden border-r border-slate-200">
+              {/* Triage Queue (Left Sub-column, balanced width) */}
+              <div className="w-full sm:w-[320px] lg:w-[340px] xl:w-[370px] shrink-0 h-full overflow-hidden border-r border-slate-200">
                 <TriageQueue
                   queries={filteredQueries}
                   selectedQueryId={selectedQueryId}
